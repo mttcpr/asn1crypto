@@ -176,6 +176,20 @@ class X509Tests(unittest.TestCase):
         self.assertEqual('https://example.com', u.__unicode__())
         self.assertEqual(b'\x16\x13https://example.com', u.dump())
 
+    def test_uri_no_normalization(self):
+        u = x509.URI('https://example.com/')
+        self.assertEqual('https://example.com/', u.native)
+        self.assertEqual('https://example.com/', u.__unicode__())
+        self.assertEqual(b'\x16\x14https://example.com/', u.dump())
+        u2 = x509.URI('https://example.com')
+        self.assertEqual('https://example.com', u2.native)
+        self.assertEqual('https://example.com', u2.__unicode__())
+        self.assertEqual(b'\x16\x13https://example.com', u2.dump())
+        u3 = x509.URI('https://example.com:443/')
+        self.assertEqual('https://example.com:443/', u3.native)
+        self.assertEqual('https://example.com:443/', u3.__unicode__())
+        self.assertEqual(b'\x16\x18https://example.com:443/', u3.dump())
+
     def test_indef_uri(self):
         u = x509.URI.load(b'\x36\x80\x16\x07https:/\x16\x07/exampl\x16\x05e.com\x00\x00')
         self.assertEqual('https://example.com', u.native)
@@ -530,6 +544,11 @@ class X509Tests(unittest.TestCase):
                 'ecdsa',
                 'sha256'
             ),
+            (
+                'keys/test-rsapss.crt',
+                'rsassa_pss',
+                'sha256'
+            ),
         )
 
     @data('signature_algo_info')
@@ -601,12 +620,97 @@ class X509Tests(unittest.TestCase):
                 'globalsign_example_keys/SSL3.cer',
                 set(['key_usage', 'extended_key_usage', 'basic_constraints'])
             ),
+            (
+                'rfc3739.crt',
+                set(['key_usage'])
+            ),
         )
 
     @data('critical_extensions_info')
     def critical_extensions(self, relative_path, critical_extensions):
         cert = self._load_cert(relative_path)
         self.assertEqual(critical_extensions, cert.critical_extensions)
+
+    @staticmethod
+    def subject_directory_attributes_value_info():
+        return (
+            (
+                'keys/test-der.crt',
+                None
+            ),
+            (
+                'keys/test-inter-der.crt',
+                None
+            ),
+            (
+                'keys/test-third-der.crt',
+                None
+            ),
+            (
+                'geotrust_certs/GeoTrust_Universal_CA.crt',
+                None
+            ),
+            (
+                'geotrust_certs/GeoTrust_Primary_CA.crt',
+                None
+            ),
+            (
+                'geotrust_certs/GeoTrust_EV_SSL_CA_-_G4.crt',
+                None
+            ),
+            (
+                'geotrust_certs/codex.crt',
+                None
+            ),
+            (
+                'lets_encrypt/isrgrootx1.pem',
+                None
+            ),
+            (
+                'lets_encrypt/letsencryptauthorityx1.pem',
+                None
+            ),
+            (
+                'lets_encrypt/letsencryptauthorityx2.pem',
+                None
+            ),
+            (
+                'globalsign_example_keys/IssuingCA-der.cer',
+                None
+            ),
+            (
+                'globalsign_example_keys/rootCA.cer',
+                None
+            ),
+            (
+                'globalsign_example_keys/SSL1.cer',
+                None
+            ),
+            (
+                'globalsign_example_keys/SSL2.cer',
+                None
+            ),
+            (
+                'globalsign_example_keys/SSL3.cer',
+                None
+            ),
+            (
+                'rfc3739.crt',
+                [
+                    util.OrderedDict([('type', 'pda_country_of_citizenship'), ('values', ['DE'])]),
+                    util.OrderedDict([('type', 'pda_gender'), ('values', ['F'])]),
+                    util.OrderedDict([('type', 'pda_date_of_birth'), ('values', [
+                        datetime(1971, 10, 14, 12, 0, tzinfo=util.timezone.utc)])]),
+                    util.OrderedDict([('type', 'pda_place_of_birth'), ('values', ['Darmstadt'])]),
+                ]
+            ),
+        )
+
+    @data('subject_directory_attributes_value_info')
+    def subject_directory_attributes_value(self, relative_path, sda_value):
+        cert = self._load_cert(relative_path)
+        value = cert.subject_directory_attributes_value
+        self.assertEqual(sda_value, value.native if value else None)
 
     @staticmethod
     def key_identifier_value_info():
@@ -670,6 +774,10 @@ class X509Tests(unittest.TestCase):
             (
                 'globalsign_example_keys/SSL3.cer',
                 b'G\xde\xa4\xe7\xea`\xe7\xee6\xc8\xf1\xd5\xb0F\x07\x07\x9eBh\xce'
+            ),
+            (
+                'rfc3739.crt',
+                None
             ),
         )
 
@@ -741,6 +849,10 @@ class X509Tests(unittest.TestCase):
             (
                 'globalsign_example_keys/SSL3.cer',
                 set(['digital_signature', 'key_encipherment'])
+            ),
+            (
+                'rfc3739.crt',
+                set(['non_repudiation'])
             ),
         )
 
@@ -817,6 +929,10 @@ class X509Tests(unittest.TestCase):
                 'globalsign_example_keys/SSL3.cer',
                 None
             ),
+            (
+                'rfc3739.crt',
+                None,
+            ),
         )
 
     @data('subject_alt_name_value_info')
@@ -887,6 +1003,10 @@ class X509Tests(unittest.TestCase):
             (
                 'globalsign_example_keys/SSL3.cer',
                 {'ca': False, 'path_len_constraint': None}
+            ),
+            (
+                'rfc3739.crt',
+                None,
             ),
         )
 
@@ -998,6 +1118,10 @@ class X509Tests(unittest.TestCase):
                 'globalsign_example_keys/SSL3.cer',
                 None
             ),
+            (
+                'rfc3739.crt',
+                None,
+            ),
         )
 
     @data('name_constraints_value_info')
@@ -1102,6 +1226,10 @@ class X509Tests(unittest.TestCase):
             (
                 'globalsign_example_keys/SSL3.cer',
                 None
+            ),
+            (
+                'rfc3739.crt',
+                None,
             ),
         )
 
@@ -1296,6 +1424,15 @@ class X509Tests(unittest.TestCase):
                     ])
                 ]
             ),
+            (
+                'rfc3739.crt',
+                [
+                    util.OrderedDict([
+                        ('policy_identifier', '1.3.36.8.1.1'),
+                        ('policy_qualifiers', None)
+                    ]),
+                ]
+            ),
         )
 
     @data('certificate_policies_value_info')
@@ -1366,6 +1503,10 @@ class X509Tests(unittest.TestCase):
             (
                 'globalsign_example_keys/SSL3.cer',
                 None
+            ),
+            (
+                'rfc3739.crt',
+                None,
             ),
         )
 
@@ -1499,6 +1640,14 @@ class X509Tests(unittest.TestCase):
                     ('authority_cert_serial_number', None)
                 ])
             ),
+            (
+                'rfc3739.crt',
+                util.OrderedDict([
+                    ('key_identifier', b"\x00\x01\x02\x03\x04\x05\x06\x07\x08\t\n\x0b\x0c\r\x0e\x0f\xfe\xdc\xba\x98"),
+                    ('authority_cert_issuer', None),
+                    ('authority_cert_serial_number', None)
+                ])
+            ),
         )
 
     @data('authority_key_identifier_value_info')
@@ -1570,6 +1719,10 @@ class X509Tests(unittest.TestCase):
                 'globalsign_example_keys/SSL3.cer',
                 None
             ),
+            (
+                'rfc3739.crt',
+                None,
+            ),
         )
 
     @data('policy_constraints_value_info')
@@ -1639,6 +1792,10 @@ class X509Tests(unittest.TestCase):
             (
                 'globalsign_example_keys/SSL3.cer',
                 ['server_auth', 'client_auth']
+            ),
+            (
+                'rfc3739.crt',
+                None,
             ),
         )
 
@@ -1770,6 +1927,10 @@ class X509Tests(unittest.TestCase):
                     ])
                 ]
             ),
+            (
+                'rfc3739.crt',
+                None,
+            ),
         )
 
     @data('authority_information_access_value_info')
@@ -1841,6 +2002,10 @@ class X509Tests(unittest.TestCase):
                 'globalsign_example_keys/SSL3.cer',
                 None
             ),
+            (
+                'rfc3739.crt',
+                None,
+            ),
         )
 
     @data('ocsp_no_check_value_info')
@@ -1857,7 +2022,7 @@ class X509Tests(unittest.TestCase):
                 b'\x80\x0f20170918151736Z\x81\x0f20180101041421Z'
             ),
         )
-    
+
     @data('private_key_usage_period_value_info')
     def private_key_usage_period_value(self, relative_path, private_key_usage_period_value):
         cert = self._load_cert(relative_path)
@@ -1925,6 +2090,10 @@ class X509Tests(unittest.TestCase):
             (
                 'globalsign_example_keys/SSL3.cer',
                 425155524522
+            ),
+            (
+                'rfc3739.crt',
+                1234567890,
             ),
         )
 
@@ -1995,6 +2164,10 @@ class X509Tests(unittest.TestCase):
             (
                 'globalsign_example_keys/SSL3.cer',
                 b'G\xde\xa4\xe7\xea`\xe7\xee6\xc8\xf1\xd5\xb0F\x07\x07\x9eBh\xce'
+            ),
+            (
+                'rfc3739.crt',
+                None,
             ),
         )
 
@@ -2080,6 +2253,11 @@ class X509Tests(unittest.TestCase):
                 b'_\xc0S\xb1\xeb}\xe3\x8e\xe4{\xdb\xd7\xe2\xd9}=3\x97|\x0c\x1e\xecz\xcc\x92u\x1f'
                 b'\xf0\x1d\xbc\x9f\xe4:425155524522'
             ),
+            (
+                'rfc3739.crt',
+                b"@\xde\x1b\xdb\xdc3a\x89:'D\xaf.G' \xb4<\xb3R8\xca;y\x8e\xfb\xef\x14\xbcE\x05F"
+                b":1234567890"
+            ),
         )
 
     @data('issuer_serial_info')
@@ -2149,6 +2327,10 @@ class X509Tests(unittest.TestCase):
             (
                 'globalsign_example_keys/SSL3.cer',
                 b"'\xf8/\xe9]\xd7\r\xf4\xa8\xea\x87\x99=\xfd\x8e\xb3\x9e@\xd0\x91"
+            ),
+            (
+                'rfc3739.crt',
+                b"\x00\x01\x02\x03\x04\x05\x06\x07\x08\t\n\x0b\x0c\r\x0e\x0f\xfe\xdc\xba\x98"
             ),
         )
 
@@ -2221,6 +2403,10 @@ class X509Tests(unittest.TestCase):
                 'globalsign_example_keys/SSL3.cer',
                 None
             ),
+            (
+                'rfc3739.crt',
+                None
+            ),
         )
 
     @data('authority_issuer_serial_info')
@@ -2290,6 +2476,10 @@ class X509Tests(unittest.TestCase):
             (
                 'globalsign_example_keys/SSL3.cer',
                 ['http://ocsp.exampleovca.com/']
+            ),
+            (
+                'rfc3739.crt',
+                []
             ),
         )
 
@@ -2397,6 +2587,10 @@ class X509Tests(unittest.TestCase):
                 'globalsign_example_keys/SSL3.cer',
                 []
             ),
+            (
+                'rfc3739.crt',
+                []
+            ),
         )
 
     @data('crl_distribution_points_info')
@@ -2468,6 +2662,10 @@ class X509Tests(unittest.TestCase):
                 'globalsign_example_keys/SSL3.cer',
                 ['*.google.com']
             ),
+            (
+                'rfc3739.crt',
+                []
+            ),
         )
 
     @data('valid_domains_info')
@@ -2536,6 +2734,10 @@ class X509Tests(unittest.TestCase):
             ),
             (
                 'globalsign_example_keys/SSL3.cer',
+                []
+            ),
+            (
+                'rfc3739.crt',
                 []
             ),
         )
@@ -2608,6 +2810,10 @@ class X509Tests(unittest.TestCase):
                 'globalsign_example_keys/SSL3.cer',
                 False
             ),
+            (
+                'rfc3739.crt',
+                False
+            ),
         )
 
     @data('self_issued_info')
@@ -2676,6 +2882,10 @@ class X509Tests(unittest.TestCase):
             ),
             (
                 'globalsign_example_keys/SSL3.cer',
+                'no'
+            ),
+            (
+                'rfc3739.crt',
                 'no'
             ),
         )
@@ -3390,3 +3600,13 @@ class X509Tests(unittest.TestCase):
             '{}',
             x509.DirectoryString.load(b'\x14\x02{}').native
         )
+
+    def test_validity_after_before(self):
+        cert = self._load_cert("keys/test-validity.crt")
+
+        self.assertEqual(cert.not_valid_after, datetime(2118, 1, 28, 12, 27, 39, tzinfo=util.timezone.utc))
+        self.assertEqual(cert.not_valid_before, datetime(2018, 2, 21, 12, 27, 39, tzinfo=util.timezone.utc))
+
+    def test_invalid_email_encoding(self):
+        cert = self._load_cert("invalid_email_tag.pem")
+        self.assertEqual('info@keyweb.de', cert.subject.native['email_address'])
